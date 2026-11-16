@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>양녕대군 버블팝 그래프</title>
+<style>
+:root{--bg:#fff;--tx:#2c2c2a;--tx2:#5f5e5a;--ln:#888780;--bd:#d3d1c7;--card:#fff;
+--pf:#EEEDFE;--ps:#534AB7;--pt:#3C3489;--ef:#E1F5EE;--es:#0F6E56;--et:#085041;
+--cf:#FAECE7;--cs:#993C1D;--ct:#712B13;--kf:#F1EFE8;--ks:#5F5E5A;--kt:#444441;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1f1e1d;--tx:#f1efe8;--tx2:#b4b2a9;--bd:#444441;--card:#2c2c2a;
+--pf:#3C3489;--ps:#AFA9EC;--pt:#CECBF6;--ef:#085041;--es:#5DCAA5;--et:#9FE1CB;
+--cf:#712B13;--cs:#F0997B;--ct:#F5C4B3;--kf:#444441;--ks:#B4B2A9;--kt:#D3D1C7}}
+:root[data-theme="dark"]{--bg:#1f1e1d;--tx:#f1efe8;--tx2:#b4b2a9;--bd:#444441;--card:#2c2c2a;
+--pf:#3C3489;--ps:#AFA9EC;--pt:#CECBF6;--ef:#085041;--es:#5DCAA5;--et:#9FE1CB;
+--cf:#712B13;--cs:#F0997B;--ct:#F5C4B3;--kf:#444441;--ks:#B4B2A9;--kt:#D3D1C7}
+body{margin:0;background:var(--bg);color:var(--tx);font-family:-apple-system,"Malgun Gothic","Apple SD Gothic Neo","Noto Sans KR",sans-serif}
+.wrap{position:relative;max-width:760px;margin:0 auto;padding:16px}
+h1{font-size:18px;font-weight:500;margin:0 0 4px}
+.hint{font-size:13px;color:var(--tx2);margin:0 0 10px}
+.lg{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13px;color:var(--tx2);margin-bottom:8px}
+.lg i{display:inline-block;width:12px;height:12px;border-radius:50%;border:1px solid;margin-right:5px;vertical-align:-1px}
+svg{width:100%;height:auto;display:block;user-select:none}
+.nd{cursor:pointer;outline:none;touch-action:none;transition:opacity .15s}
+.nd.dim,.ed.dim{opacity:.2}
+.nd:focus-visible circle{stroke-width:3}
+.ed text{opacity:0;transition:opacity .15s;paint-order:stroke;stroke:var(--bg);stroke-width:3px}
+.ed.on text{opacity:1}
+.tip{position:absolute;display:none;max-width:270px;background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:10px 12px;font-size:13px;line-height:1.6;pointer-events:none;z-index:5}
+.tip b{font-weight:500;font-size:15px}
+.tip small{color:var(--tx2)}
+.tip ul{margin:6px 0 0;padding-left:16px}
+</style>
+</head>
+<body>
+<div class="wrap" id="wrap">
+<h1>양녕대군 버블팝 그래프</h1>
+<p class="hint">버블에 올리면 설명, 클릭하면 팡! 터지고 잠시 뒤 다시 부풀어요. 끌어서 옮길 수도 있어요. 터뜨린 버블: <b id="cnt">0</b> (모바일은 두 번 탭)</p>
+<div class="lg">
+<span><i style="background:var(--pf);border-color:var(--ps)"></i>인물·기관</span>
+<span><i style="background:var(--ef);border-color:var(--es)"></i>사건·결정</span>
+<span><i style="background:var(--cf);border-color:var(--cs)"></i>주장</span>
+<span><i style="background:var(--kf);border-color:var(--ks)"></i>개념</span>
+</div>
+<svg id="g" viewBox="0 0 680 560" role="img" aria-label="양녕대군 서울 거주 논쟁의 관계를 버블로 나타낸 그래프"></svg>
+<div class="tip" id="tip" role="tooltip"></div>
+</div>
+<script>
+const TY={p:'인물·기관',e:'사건·결정',c:'주장',k:'개념'};
+const N=[
+['tae','태종','p','양녕과 임금의 아버지. 양녕이 대통을 이을 만한 덕이 없다 하여 외방에 방치했다.'],
+['out','외방 폐출','e','태종 때 양녕이 행실에 덕이 없다는 이유로 외방으로 내쳐진 사건.'],
+['vir','덕망 결여','k','폐출의 원인. 임금은 모반이나 시기의 뜻은 없었고 행실에 덕이 없었을 뿐이라고 말한다.'],
+['yn','양녕대군','p','폐세자. 외방에서 오래 지냈고 이제 연로하여 임금이 서울 집에서 살게 하려는 대상.'],
+['king','임금','p','발화 주체이자 양녕의 아우(세종으로 추정, 사료에 명시 없음). 접견 5절목을 단계적으로 넓혀 왔고 서울 거주를 확정한다.'],
+['love','우애','k','임금이 양녕을 자주 만나고 서울에 들이려는 동기가 되는 형제간의 정.'],
+['gu','구종 하사','e','임금이 양녕에게 구종(수행 하인)을 내린 일. 대간은 반대했으나 임금은 사소한 일이라 하며 서울 거주의 계기로 삼는다.'],
+['d1','서울 거주 허락','e','임금이 의정부에 전교하여 양녕을 서울 집에서 살게 한 결정. 뜻이 이미 정해져 돌릴 수 없다고 밝힌다.'],
+['jb','의정부','p','임금의 전교를 받는 기관.'],
+['bk','배강·권자홍','p','배강(헌납)과 권자홍(지평). 대간 소속으로 양녕에 관한 일을 거듭 아뢴다.'],
+['req','2차 주청','e','배강·권자홍이 양녕 문제를 다시 아뢴 간쟁. 구종 하사에 반대한다.'],
+['kc','임금 주장','c','양녕은 모반·시기의 마음이 없었고, 허물을 고쳐 착해졌으며, 구종 하사는 사소한 일이라는 임금의 주장.'],
+['dc','대간 주장','c','양녕의 행실이 전과 다름없고 여러 번 은혜를 입고도 겸양이 없으니 허물을 고쳤다 할 수 없다는 배강 등의 주장.'],
+['hu','겸양 결여','k','대간이 근거로 든, 양녕에게 겸손하고 사양하는 마음이 없다는 점.'],
+['gr','우악한 은혜','k','대간이 전제로 든, 양녕이 여러 번 입은 임금의 은혜.']
+];
+const E=[
+['tae','out','실행',0],['vir','out','원인',0],['out','yn','대상',0],['gu','yn','수혜자',0],
+['king','gu','실행',0],['king','d1','결정',0],['gu','d1','목적',0],['d1','jb','전교',0],
+['love','d1','동기',0],['req','gu','반대',1],['bk','req','실행',0],['bk','dc','주장',0],
+['dc','kc','반박',1],['kc','d1','뒷받침',0],['dc','hu','근거',0],['dc','gr','전제',0]
+];
+const W=680,H=560,S='http://www.w3.org/2000/svg';
+const svg=document.getElementById('g'),tip=document.getElementById('tip'),wrap=document.getElementById('wrap'),cnt=document.getElementById('cnt');
+const motion=matchMedia('(prefers-reduced-motion:reduce)').matches?0:1;
+const el=(n,a,p)=>{const e=document.createElementNS(S,n);for(const k in a)e.setAttribute(k,a[k]);if(p)p.appendChild(e);return e};
+const deg={};E.forEach(e=>{deg[e[0]]=(deg[e[0]]||0)+1;deg[e[1]]=(deg[e[1]]||0)+1});
+const V=N.map((n,i)=>{const a=i/N.length*6.283;return{id:n[0],lb:n[1],ty:n[2],ds:n[3],r:36+4*deg[n[0]],x:W/2+Math.cos(a)*190,y:H/2+Math.sin(a)*150,vx:0,vy:0,s:1,o:1,st:'idle',t:0,ph:i*1.7}});
+const M={};V.forEach(v=>M[v.id]=v);
+const eg=el('g',{},svg),ng=el('g',{},svg),fg=el('g',{},svg);
+const ER=E.map(e=>{
+  const g=el('g',{class:'ed'},eg);
+  const l=el('line',{stroke:'var(--ln)','stroke-width':1.2,'stroke-dasharray':e[3]?'4 3':'none'},g);
+  const t=el('text',{'text-anchor':'middle','font-size':12,fill:'var(--tx2)'},g);t.textContent=e[2];
+  return{g,l,t};
+});
+V.forEach(v=>{
+  const g=el('g',{class:'nd',tabindex:0,role:'button','aria-label':v.lb},ng);v.g=g;
+  el('circle',{r:v.r,fill:'var(--'+v.ty+'f)',stroke:'var(--'+v.ty+'s)','stroke-width':1.5},g);
+  el('ellipse',{cx:-v.r*.35,cy:-v.r*.45,rx:v.r*.3,ry:v.r*.15,fill:'#fff','fill-opacity':.5,transform:'rotate(-35 '+(-v.r*.35)+' '+(-v.r*.45)+')'},g);
+  const t=el('text',{'text-anchor':'middle','dominant-baseline':'central','font-size':12,'font-weight':500,fill:'var(--'+v.ty+'t)'},g);
+  const w=v.lb.split(' ');
+  w.forEach((s,i)=>{const ts=el('tspan',{x:0,y:w.length>1?(i?9:-7):0},t);ts.textContent=s});
+  g.addEventListener('pointerenter',()=>show(v));
+  g.addEventListener('pointerleave',()=>{if(!drag)hide()});
+  g.addEventListener('pointerdown',e=>{if(v.st!=='idle'&&v.st!=='grow')return;const p=pt(e);drag={v,dx:v.x-p.x,dy:v.y-p.y,sx:e.clientX,sy:e.clientY,moved:false,type:e.pointerType}});
+  g.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();pop(v)}});
+  g.addEventListener('focus',()=>show(v));
+  g.addEventListener('blur',hide);
+});
+function pt(e){const m=svg.getScreenCTM().inverse(),p=new DOMPoint(e.clientX,e.clientY).matrixTransform(m);return{x:p.x,y:p.y}}
+let drag=null,lastTap=null,pops=0,fx=[];
+addEventListener('pointermove',e=>{if(!drag)return;if(Math.hypot(e.clientX-drag.sx,e.clientY-drag.sy)>5)drag.moved=true;if(drag.moved){const p=pt(e);drag.v.x=Math.max(drag.v.r,Math.min(W-drag.v.r,p.x+drag.dx));drag.v.y=Math.max(drag.v.r,Math.min(H-drag.v.r,p.y+drag.dy));drag.v.vx=drag.v.vy=0}});
+addEventListener('pointerup',()=>{if(!drag)return;const d=drag;drag=null;
+  if(!d.moved){if(d.type==='mouse'||lastTap===d.v.id){pop(d.v);lastTap=null}else{lastTap=d.v.id;show(d.v)}}});
+addEventListener('pointerdown',e=>{if(!e.target.closest('.nd')){hide();lastTap=null}});
+addEventListener('keydown',e=>{if(e.key==='Escape')hide()});
+function hide(){tip.style.display='none';V.forEach(v=>v.g.classList.remove('dim'));ER.forEach(x=>{x.g.classList.remove('dim','on')})}
+function show(v){
+  if(v.st==='gone'||v.st==='pop')return;
+  const rel=new Set([v.id]),mine=E.filter(e=>e[0]===v.id||e[1]===v.id);
+  mine.forEach(e=>{rel.add(e[0]);rel.add(e[1])});
+  V.forEach(u=>u.g.classList.toggle('dim',!rel.has(u.id)));
+  ER.forEach((x,i)=>{const on=E[i][0]===v.id||E[i][1]===v.id;x.g.classList.toggle('dim',!on);x.g.classList.toggle('on',on)});
+  tip.innerHTML='<b>'+v.lb+'</b> <small>'+TY[v.ty]+'</small><div>'+v.ds+'</div><ul>'+mine.map(e=>'<li>'+M[e[0]].lb+' → '+M[e[1]].lb+' <small>('+e[2]+')</small></li>').join('')+'</ul>';
+  tip.style.display='block';
+  const r=v.g.getBoundingClientRect(),w=wrap.getBoundingClientRect();
+  const left=Math.max(8,Math.min(r.left-w.left,w.width-tip.offsetWidth-8));
+  let top=r.bottom-w.top+8;if(top+tip.offsetHeight>w.height)top=r.top-w.top-tip.offsetHeight-8;
+  tip.style.left=left+'px';tip.style.top=Math.max(0,top)+'px';
+}
+function pop(v){
+  if(v.st!=='idle'&&v.st!=='grow')return;
+  v.st='pop';v.t=0;hide();cnt.textContent=++pops;
+  const c='var(--'+v.ty+'s)';
+  fx.push({k:'ring',x:v.x,y:v.y,r:v.r,l:1,e:el('circle',{fill:'none',stroke:c,'stroke-width':2},fg)});
+  for(let i=0;i<8;i++){const a=i/8*6.283+Math.random()*.4,sp=2.5+Math.random()*2;
+    fx.push({k:'dot',x:v.x,y:v.y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,r:3+Math.random()*4,l:1,e:el('circle',{fill:'var(--'+v.ty+'f)',stroke:c,'stroke-width':1},fg)})}
+}
+let last=performance.now(),T0=0;
+function tick(now){
+  const dt=Math.min(32,now-last)/16.67;last=now;T0+=dt/60;
+  const A=V.filter(v=>v.st==='idle'||v.st==='grow');
+  for(let i=0;i<A.length;i++)for(let j=i+1;j<A.length;j++){
+    const a=A[i],b=A[j];let dx=b.x-a.x,dy=b.y-a.y,d=Math.hypot(dx,dy)||1;const m=a.r+b.r+12;
+    if(d<m+90){const f=(d<m?(m-d)*.05:(m+90-d)*.0015)*dt,fx_=dx/d*f,fy_=dy/d*f;a.vx-=fx_;a.vy-=fy_;b.vx+=fx_;b.vy+=fy_}
+  }
+  E.forEach(e=>{const a=M[e[0]],b=M[e[1]];if(!A.includes(a)||!A.includes(b))return;
+    const dx=b.x-a.x,dy=b.y-a.y,d=Math.hypot(dx,dy)||1,f=(d-(a.r+b.r+60))*.0035*dt;
+    a.vx+=dx/d*f;a.vy+=dy/d*f;b.vx-=dx/d*f;b.vy-=dy/d*f});
+  V.forEach(v=>{
+    if(v.st==='idle'||v.st==='grow'){
+      if(!(drag&&drag.moved&&drag.v===v)){
+        v.vx+=((W/2-v.x)*.0008+Math.sin(T0*1.3+v.ph)*.015*motion)*dt;
+        v.vy+=((H/2-v.y)*.0008+Math.cos(T0*1.1+v.ph)*.015*motion)*dt;
+        v.vx*=.9;v.vy*=.9;v.x+=v.vx*dt;v.y+=v.vy*dt;
+        if(v.x<v.r){v.x=v.r;v.vx*=-.5}if(v.x>W-v.r){v.x=W-v.r;v.vx*=-.5}
+        if(v.y<v.r){v.y=v.r;v.vy*=-.5}if(v.y>H-v.r){v.y=H-v.r;v.vy*=-.5}
+      }
+      if(v.st==='grow'){v.t+=dt*16.67;const p=Math.min(1,v.t/500),c=1.7;v.s=1+(c+1)*Math.pow(p-1,3)+c*Math.pow(p-1,2);v.o=1;if(p>=1){v.st='idle';v.s=1}}
+    }else if(v.st==='pop'){v.t+=dt*16.67;const p=Math.min(1,v.t/(motion?260:1));v.s=1+.35*p;v.o=1-p;if(p>=1){v.st='gone';v.t=0}}
+    else if(v.st==='gone'){v.t+=dt*16.67;if(v.t>2200){v.st='grow';v.t=0;v.s=0;v.o=1;v.vx=v.vy=0}}
+    v.g.setAttribute('transform','translate('+v.x.toFixed(1)+' '+v.y.toFixed(1)+') scale('+Math.max(0,v.s).toFixed(3)+')');
+    v.g.style.display=v.st==='gone'?'none':'';v.g.setAttribute('opacity',v.o.toFixed(2));
+  });
+  ER.forEach((x,i)=>{const a=M[E[i][0]],b=M[E[i][1]],vis=a.st!=='gone'&&b.st!=='gone';
+    x.g.style.display=vis?'':'none';if(!vis)return;
+    const dx=b.x-a.x,dy=b.y-a.y,d=Math.hypot(dx,dy)||1,ux=dx/d,uy=dy/d;
+    x.l.setAttribute('x1',a.x+ux*a.r*a.s);x.l.setAttribute('y1',a.y+uy*a.r*a.s);
+    x.l.setAttribute('x2',b.x-ux*b.r*b.s);x.l.setAttribute('y2',b.y-uy*b.r*b.s);
+    x.l.setAttribute('opacity',Math.min(a.o,b.o));
+    x.t.setAttribute('x',(a.x+b.x)/2);x.t.setAttribute('y',(a.y+b.y)/2);});
+  fx=fx.filter(f=>{f.l-=dt*.035;if(f.l<=0){f.e.remove();return false}
+    if(f.k==='ring'){f.e.setAttribute('cx',f.x);f.e.setAttribute('cy',f.y);f.e.setAttribute('r',f.r*(1+.8*(1-f.l)));}
+    else{f.x+=f.vx*dt;f.y+=f.vy*dt;f.vx*=.95;f.vy*=.95;f.e.setAttribute('cx',f.x);f.e.setAttribute('cy',f.y);f.e.setAttribute('r',f.r*f.l)}
+    f.e.setAttribute('opacity',f.l);return true});
+  requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+</script>
+</body>
+</html>
